@@ -79,17 +79,24 @@ def case_deletion(df, axis):
     return new_df
 
 
-def single_imputation(df, type, column):
+def single_imputation(df, types, columns=[]):
     '''
     This file takes a dataframe with missing values and imputes those
     missing values with the median/mode/mean (type) of the column it's in
 
-    It returns a new dataframe with missing values filled in
+    It returns the old dataframe with missing values filled in place
     '''
 
     if type == 'mean':
+        for col in columns:
+            df.fillna(value = {col:df[col].mean()}, inplace=True)
 
     elif type == 'median':
+        for col in columns:
+            df.fillna(value = {col:df[col].median()}, inplace=True)
 
     else:
-        
+        for col in columns:
+            df.fillna(value = {col:df[col].mode()}, inplace=True)
+
+    return df 
