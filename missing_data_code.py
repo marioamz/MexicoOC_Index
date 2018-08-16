@@ -40,8 +40,9 @@ def find_missing_rows(df, row_id, cols=[]):
     It returns sets with rows for missing values, segregated by columns
     '''
 
+    # empty set to fill in with row, column pairs
     missing_rows = set()
-
+    # the cols in this instance will always be the null_cols above
     for tup in cols:
         for ind, row in df.iterrows():
             if math.isnan(row[tup[0]]):
@@ -62,10 +63,33 @@ def impute_zero(df, dict):
     return new_df
 
 
-def case_deletion(df):
+def case_deletion(df, axis):
     '''
     This file takes a dataframe and deletes all the rows or columns
     with missing values
 
     It returns a new dataframe with the deletions
     '''
+
+    if axis == 'row':
+        new_df = df.dropna(axis=0)
+    else:
+        new_df = df.dropna(axis=1)
+
+    return new_df
+
+
+def single_imputation(df, type, column):
+    '''
+    This file takes a dataframe with missing values and imputes those
+    missing values with the median/mode/mean (type) of the column it's in
+
+    It returns a new dataframe with missing values filled in
+    '''
+
+    if type == 'mean':
+
+    elif type == 'median':
+
+    else:
+        
