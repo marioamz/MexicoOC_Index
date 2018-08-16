@@ -1,5 +1,10 @@
 import pandas as pd
+import missingno as mno
+import matplotlib.pyplot as plt
+import seaborn as sns
 import math
+from sklearn import linear_model
+from sklearn.metrics import mean_squared_error, r2_score
 
 def reading_in(excelname):
     '''
@@ -49,6 +54,23 @@ def find_missing_rows(df, row_id, cols=[]):
                 missing_rows.add((row[row_id], tup[0]))
 
     return missing_rows
+
+
+def visualizing_nulls(df, graph):
+    '''
+    This function visualizes nulls using the missingno package. It
+    takes in a dataframe and the type of graph we want, and then
+    returns the graph
+    '''
+
+    if graph == 'nullity':
+        mno.matrix(df)
+    elif graph == 'bar':
+        mno.bar(df, color='purple', log='True', figsize=(30,18))
+    elif graph == 'corr':
+        mno.heatmap(df, figsize=(20,20))
+
+    plt.show()
 
 
 def impute_zero(df, dict):
@@ -103,3 +125,63 @@ def single_imputation(df, types, columns=[]):
 
     new_df = df.fillna(value=values_dict, inplace=True)
     return new_df
+
+
+def linear_regression_imputation(df, dep_vars, missrow, index):
+    '''
+    This function takes in a dataframe and imputes it's missing values
+    using linear regression
+
+    It returns a dataframe with the values imputed
+    '''
+
+    x_train, y_train, x_test, y_test = train_test(df)
+
+
+def train_test(df):
+    '''
+    A helper function that divides a dataframe into test-train splits
+    that can help us impute missing variables using methods like linear
+    regression and k-nearest neighbors
+
+    This is divided into two steps:
+        - Create two dataframes, one without the rows with missing
+          variables (train) and the other only with the rows with
+          the missing variables (test)
+        - Divide the train frame into two: one drops the columns that
+          we know have missing variables (x_train) and the other only
+          keeps columns that we have missing variables (y_train)
+        - Divide the test frame into two: one drops the columns that
+          we know have missing variables (x_test), the other keeps only
+          those variables (y_test)
+
+    The beauty is that we can use case_deletion here for most of the work
+
+    Returns x_train, y_train, x_test, y_test
+    '''
+
+    # Step 1
+    train = case_deletion(df, 'row')
+    test = df[df.isnull().any(1)]
+
+    # Step 2
+    x_train = train.drop(find_missing_cols(df), axis=1)
+    y_train = train(find_missing_cols(df))
+
+    x_test = test.drop(find_missing_cols(df), axis=1)
+    y_test = test(find_missing_cols(df))
+
+    return x_train, y_train, x_test, y_test
+
+
+def explore_potential_correlations(df):
+    '''
+    This function explores potential correlations between variables
+
+    This is to find instances of multicollinearity.
+    '''
+
+    axis = plt.axes()
+    sns.heatmap(df.corr(), square=True, cmap='PiYG')
+    axis.set_title('Correlation Matrix')
+    plt.show()
