@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import math
 from sklearn import linear_model
+from sklearn.neighbors import KNeighborsClassifier
+
 
 def reading_in(excelname):
     '''
@@ -143,20 +145,43 @@ def linear_regression_imputation(df, index):
         regr = linear_model.LinearRegression()
         x = regr.fit(x_train.drop(index, axis=1), y_train_series)
         y_pred = regr.predict(x_test.drop(index, axis=1)).tolist()
+        score = regr.score(x_train.drop(index, axis=1), y_train_series)
         for y in y_pred:
             new_df = df.fillna(value={col:y}, limit=1, inplace=True)
 
-    return new_df
+    return new_df, score
 
 
-def k_nearest_imputation(df):
+def k_nearest_imputation(df, knn, index):
     '''
-    This function takes in a dataframe with missing values and
-    imputes those missing values using a k-nearest neighbor model
+    This function takes in a dataframe with missing values and the
+    number of neighbors to loop through, and then imputes the missing
+    values using a k-nearest neighbor model
+
+    It returns a dataframe with the nulls filled in
     '''
 
     x_train, y_train, x_test, y_test = train_test(df)
-    
+    # Making all variables integers for KNN algorithm to run
+    x_train_int = x_train.drop(index, axis=1).astype('int64')
+    y_train_int = y_train.astype('int64')
+
+    metrics = ['euclidean', 'manhattan', 'chebyshev', 'minkowski']
+    weights = ['uniform', 'distance']
+
+    for col in y_train_int:
+        for k in range(knn):
+            for metric in metrics:
+                for weight in weights:
+                    knn_loop = KNeighborsClassifier(n_neighbors=(k + 1), \
+                    weights=weight, metric=metric)
+                    knn_loop.fit(x_train_int, y_train_int[col])
+                    y_pred = knn_loop.predict(x_test.drop(index, axis=1)).tolist()
+                    for y in y_pred:
+                        new_df = df.fillna(value={col:y}, limit=1, inplace=True)
+
+    return new_df
+
 
 def train_test(df):
     '''
