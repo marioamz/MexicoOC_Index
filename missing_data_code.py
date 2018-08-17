@@ -1,10 +1,10 @@
 import pandas as pd
+import numpy as np
 import missingno as mno
 import matplotlib.pyplot as plt
 import seaborn as sns
 import math
 from sklearn import linear_model
-from sklearn.metrics import mean_squared_error, r2_score
 
 def reading_in(excelname):
     '''
@@ -127,16 +127,36 @@ def single_imputation(df, types, columns=[]):
     return new_df
 
 
-def linear_regression_imputation(df, dep_vars, missrow, index):
+def linear_regression_imputation(df, index):
     '''
     This function takes in a dataframe and imputes it's missing values
     using linear regression
 
-    It returns a dataframe with the values imputed
+    It returns a dataframe with the values imputed, but it can't test them
+    against anything due to the fact that it's imputing
     '''
 
     x_train, y_train, x_test, y_test = train_test(df)
 
+    for col in y_train:
+        y_train_series = y_train[col]
+        regr = linear_model.LinearRegression()
+        x = regr.fit(x_train.drop(index, axis=1), y_train_series)
+        y_pred = regr.predict(x_test.drop(index, axis=1)).tolist()
+        for y in y_pred:
+            new_df = df.fillna(value={col:y}, limit=1, inplace=True)
+
+    return new_df
+
+
+def k_nearest_imputation(df):
+    '''
+    This function takes in a dataframe with missing values and
+    imputes those missing values using a k-nearest neighbor model
+    '''
+
+    x_train, y_train, x_test, y_test = train_test(df)
+    
 
 def train_test(df):
     '''
@@ -165,11 +185,15 @@ def train_test(df):
     test = df[df.isnull().any(1)]
 
     # Step 2
-    x_train = train.drop(find_missing_cols(df), axis=1)
-    y_train = train(find_missing_cols(df))
+    cols_impute = []
+    for cols in find_missing_cols(df):
+         cols_impute.append(cols[0])
 
-    x_test = test.drop(find_missing_cols(df), axis=1)
-    y_test = test(find_missing_cols(df))
+    x_train = train.drop(cols_impute, axis=1)
+    y_train = train[cols_impute]
+
+    x_test = test.drop(cols_impute, axis=1)
+    y_test = test[cols_impute]
 
     return x_train, y_train, x_test, y_test
 
