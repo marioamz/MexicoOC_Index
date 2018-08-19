@@ -170,15 +170,14 @@ def k_nearest_imputation(df, knn, index):
     weights = ['uniform', 'distance']
 
     for col in y_train_int:
-        for k in range(knn):
-            for metric in metrics:
-                for weight in weights:
-                    knn_loop = KNeighborsClassifier(n_neighbors=(k + 1), \
-                    weights=weight, metric=metric)
-                    knn_loop.fit(x_train_int, y_train_int[col])
-                    y_pred = knn_loop.predict(x_test.drop(index, axis=1)).tolist()
-                    for y in y_pred:
-                        new_df = df.fillna(value={col:y}, limit=1, inplace=True)
+        for metric in metrics:
+            for weight in weights:
+                knn_loop = KNeighborsClassifier(n_neighbors=(knn + 1), \
+                weights=weight, metric=metric)
+                knn_loop.fit(x_train_int, y_train_int[col])
+                y_pred = knn_loop.predict(x_test.drop(index, axis=1)).tolist()
+                for y in y_pred:
+                    new_df = df.fillna(value={col:y}, limit=1, inplace=True)
 
     return new_df
 
