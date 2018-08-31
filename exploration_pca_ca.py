@@ -3,7 +3,7 @@ import re
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn import preprocessing, decomposition
+from sklearn import preprocessing, decomposition, cluster
 
 
 ####CLEAN DATA####
@@ -251,7 +251,7 @@ def pca(df, components):
     return pc, y_pca
 
 
-def pca_df(df, pc, y_pca, components, var1, var2):
+def pca_df(df, pc, y_pca, components, var1, var2, name):
     '''
     This function takes in a dataframe without strings, the principal
     components class we created above, the array of vectors, the
@@ -264,7 +264,7 @@ def pca_df(df, pc, y_pca, components, var1, var2):
     # graphing and printing the explained variance
     explained_variance_graph(pc)
     print('Variance explained for first' + ' ' + str(components) + \
-    ' ' + 'components:')
+    ' ' + 'components' + ' ' + 'in' + ' ' + name)
     print(pc.explained_variance_ratio_)
 
     # creating the dataframe of PC vectors
@@ -303,7 +303,7 @@ def two_dimension_pca_graph(df, var1):
     ax = fig.add_subplot(1,1,1)
     ax.set_xlabel('Principal Component 1', fontsize = 15)
     ax.set_ylabel('Principal Component 2', fontsize = 15)
-    ax.set_title('2 Component PCA', fontsize = 20)
+    ax.set_title('2 Component PCA for' + ' ' + str(df['year'][1]), fontsize = 20)
 
 
     targets = df[var1].unique().tolist()
@@ -350,3 +350,32 @@ def highlight_vals(s):
     '''
 
     return ['background-color: yellow' if v >= 0.5 else '' for v in s]
+
+
+### CLUSTERING ###
+
+
+def standardizing(df):
+    '''
+    This function takes in a dataframe that we need to cluster and
+    returns it as a standardized array.
+    '''
+
+    return preprocessing.StandardScaler().fit_transform(df)
+
+
+def kmeans_index(df_wtarget, df_wotarget, n_clusters, vars):
+    '''
+    This function takes in a dataframe and number of clusters
+    and runs an unsupervised kmeans algorithm to determine how
+    the data should be clustered. It returns a matrix of the
+    clusters.
+    '''
+
+    array = standardizing(df_wotarget)
+
+    kmeans = cluster.KMeans(n_clusters = n_clusters).fit(array)
+    df_wtarget['score'] = kmeans.labels_
+    scores = df_wtarget.filter(items=vars)
+
+    return scores
