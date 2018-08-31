@@ -3,7 +3,7 @@ import re
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn import preprocessing, decomposition, cluster
+from sklearn import preprocessing, decomposition, cluster, covariance, manifold
 
 
 ####CLEAN DATA####
@@ -366,9 +366,11 @@ def standardizing(df):
 
 def kmeans_index(df_wtarget, df_wotarget, n_clusters, vars):
     '''
-    This function takes in a dataframe and number of clusters
-    and runs an unsupervised kmeans algorithm to determine how
-    the data should be clustered. It returns a matrix of the
+    This function takes in a dataframe with the target variables,
+    a dataframe without the target variable, number of clusters,
+    and a list of the variables we want to keep in the final df.
+    It runs an unsupervised kmeans algorithm to determine how
+    the data should be clustered. It returns a dataframe of the
     clusters.
     '''
 
@@ -379,3 +381,33 @@ def kmeans_index(df_wtarget, df_wotarget, n_clusters, vars):
     scores = df_wtarget.filter(items=vars)
 
     return scores
+
+
+def affinity_propagation(df_wtarget, df_wotarget, title):
+    '''
+    This function takes in a dataframe with our target variable,
+    a dataframe without the target variable, and the title of the
+    result. It does an affinity propagation analysis and then prints
+    out the clusters we've determined.
+    '''
+
+    # Learn a graphical structure from the correlations
+    edge_model = covariance.GraphLassoCV()
+
+    # standardize the time series: using correlations rather than covariance
+    # is more efficient for structure recovery
+    X = df_wotarget.copy().T
+    X /= X.std(axis=0)
+    edge_model.fit(X)
+
+    # #############################################################################
+    # Cluster using affinity propagation
+
+    _, labels = cluster.affinity_propagation(edge_model.covariance_)
+    n_labels = labels.max()
+
+    print()
+    print(title)
+    for i in range(n_labels + 1):
+        print('Cluster %i: %s' % ((i + 1), ', '.join(df_wtarget.iloc[:,0].\
+        values[labels == i])))
