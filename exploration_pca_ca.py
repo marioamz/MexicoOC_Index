@@ -3,6 +3,7 @@ import re
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import binned_statistic
 from sklearn import preprocessing, decomposition, cluster, covariance, manifold
 
 
@@ -19,7 +20,7 @@ def dummify(df, to_dummy):
     return new_df
 
 
-def clean_data(df, discretize, binary, to_del):
+def clean_data(df, discretize, bins, binary, to_del):
     '''
     This function cleans the data by removing variables that have
     multicollinearity, filling any nulls, and discretizing/turning
@@ -33,7 +34,7 @@ def clean_data(df, discretize, binary, to_del):
 
     #Discretize
     for var in discretize:
-        to_discretize(df, var)
+        to_discretize(df, var, bins)
 
     #Binary
     for binary_var in binary:
@@ -45,26 +46,18 @@ def clean_data(df, discretize, binary, to_del):
 
     return df
 
-def to_discretize(df, var):
+
+def to_discretize(df, var, bins):
     '''
-    This function discretizes variables into more workable ranges.
-
-    The ranges are not automated.
+    This function discretizes variables into bins that are given
+    categorical values based on the bins attribute.
     '''
 
+    bin = binned_statistic(df[var], df[var], bins=bins)[2]
 
-    student_bins = range(0, 1000, 250)
-    price_bins = range(0, 3500, 500)
-
-    if var == 'students_reached':
-        df['students_reached_groups'] = pd.cut(df[var], student_bins, labels=False)
-        del df[var]
-    elif var == 'total_price_excluding_optional_support':
-        df['tp_exclude'] = pd.cut(df[var], price_bins, labels=False)
-        del df[var]
-    elif var == 'total_price_including_optional_support':
-        df['tp_include'] = pd.cut(df[var], price_bins, labels=False)
-        del df[var]
+    new_name = var + '_discretize'
+    df[new_name] = bin
+    del df[var]
 
 
 def remove_outliers(df, cols):
