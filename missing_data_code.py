@@ -75,7 +75,7 @@ def visualizing_nulls(df, graph):
     plt.show()
 
 
-def impute_zero(df, dict):
+def impute_zero(df, dicto):
     '''
     This file takes a dataframe with missing columns and imputes
     missing values for some columns with zeroes
@@ -83,7 +83,7 @@ def impute_zero(df, dict):
     It returns a new dataframe with values filled in place
     '''
 
-    new_df = df.fillna(value=dict, inplace=True)
+    new_df = df.fillna(value=dicto)
     return new_df
 
 
@@ -103,7 +103,7 @@ def case_deletion(df, axis):
     return new_df
 
 
-def single_imputation(df, types, columns=[]):
+def single_imputation(df, types, columns):
     '''
     This file takes a dataframe with missing values and imputes those
     missing values with the median/mode/mean (type) of the column it's in
@@ -124,8 +124,9 @@ def single_imputation(df, types, columns=[]):
     elif types == 'mode':
         for col in columns:
             values_dict[col] = df[col].mode()[0]
+            
+    new_df = df.fillna(value=values_dict)
 
-    new_df = df.fillna(value=values_dict, inplace=True)
     return new_df
 
 
@@ -138,6 +139,9 @@ def linear_regression_imputation(df, index):
     against anything due to the fact that it's imputing
     '''
 
+    new_dict = {}
+    scores = []
+    
     x_train, y_train, x_test, y_test = train_test(df)
 
     for col in y_train:
@@ -146,13 +150,15 @@ def linear_regression_imputation(df, index):
         x = regr.fit(x_train.drop(index, axis=1), y_train_series)
         y_pred = regr.predict(x_test.drop(index, axis=1)).tolist()
         score = regr.score(x_train.drop(index, axis=1), y_train_series)
+        scores.append((col, score))
         for y in y_pred:
-            new_df = df.fillna(value={col:y}, limit=1, inplace=True)
+            new_dict[col] = y
 
-    return new_df, score
+    new_df = df.fillna(value=new_dict)
+    return new_df, scores
 
 
-def k_nearest_imputation(df, knn, index):
+def k_nearest_imputation(df, knn, index, distance=None, weight=None):
     '''
     This function takes in a dataframe with missing values and the
     number of neighbors to loop through, and then imputes the missing
@@ -161,24 +167,23 @@ def k_nearest_imputation(df, knn, index):
     It returns a dataframe with the nulls filled in
     '''
 
+    new_dict = {}
+
     x_train, y_train, x_test, y_test = train_test(df)
     # Making all variables integers for KNN algorithm to run
     x_train_int = x_train.drop(index, axis=1).astype('int64')
     y_train_int = y_train.astype('int64')
 
-    metrics = ['euclidean', 'manhattan', 'chebyshev', 'minkowski']
-    weights = ['uniform', 'distance']
-
     for col in y_train_int:
-        for metric in metrics:
-            for weight in weights:
-                knn_loop = KNeighborsClassifier(n_neighbors=(knn + 1), \
-                weights=weight, metric=metric)
-                knn_loop.fit(x_train_int, y_train_int[col])
-                y_pred = knn_loop.predict(x_test.drop(index, axis=1)).tolist()
-                for y in y_pred:
-                    new_df = df.fillna(value={col:y}, limit=1, inplace=True)
-
+        knn_loop = KNeighborsClassifier(n_neighbors=(knn + 1), \
+        weights=weight, metric=distance)
+        knn_loop.fit(x_train_int, y_train_int[col])
+        y_pred = knn_loop.predict(x_test.drop(index, axis=1)).tolist()
+        for y in y_pred:
+            new_dict[col] = y
+    
+    new_df = df.fillna(value=new_dict)
+    
     return new_df
 
 
@@ -222,14 +227,3 @@ def train_test(df):
     return x_train, y_train, x_test, y_test
 
 
-def explore_potential_correlations(df):
-    '''
-    This function explores potential correlations between variables
-
-    This is to find instances of multicollinearity.
-    '''
-
-    axis = plt.axes()
-    sns.heatmap(df.corr(), square=True, cmap='PiYG')
-    axis.set_title('Correlation Matrix')
-    plt.show()
