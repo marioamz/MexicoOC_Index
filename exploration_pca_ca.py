@@ -258,7 +258,15 @@ def pca_df(df, pc, y_pca, components, var1, var2, name):
     explained_variance_graph(pc)
     print('Variance explained for first' + ' ' + str(components) + \
     ' ' + 'components' + ' ' + 'in' + ' ' + name)
-    print(pc.explained_variance_ratio_)
+    print(np.cumsum(pc.explained_variance_ratio_) * 100)
+    print()
+    
+    
+    #print('Eigenvalues for first' + ' ' + str(components) + \
+    #     ' ' + 'components' + ' ' + 'in' + ' ' + name)
+    #print(pc.explained_variance_)
+    #print()
+    #print()
 
     # creating the dataframe of PC vectors
     pcaDF = pd.DataFrame(data = y_pca, columns = \
