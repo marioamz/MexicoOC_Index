@@ -338,7 +338,7 @@ def factor_loadings(pc, df_vars, df_pca, var1, var2):
         columns= [p for p in df_pca if p != var1 and p != var2])
 
     return loadings.style.apply(highlight_vals)
-
+        
 
 def highlight_vals(s):
     '''
@@ -412,3 +412,4 @@ def affinity_propagation(df_wtarget, df_wotarget, title):
     for i in range(n_labels + 1):
         print('Cluster %i: %s' % ((i + 1), ', '.join(df_wtarget.iloc[:,0].\
         values[labels == i])))
+        
