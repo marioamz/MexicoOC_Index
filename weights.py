@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import preprocessing, decomposition
+from scipy.stats.mstats import gmean
 
 
 ### PCA Weighting ###
@@ -158,10 +159,8 @@ def calculate_weights(ss_df, perc_list):
         count += 1
         
     weights = nonmax_zero_df.max(axis=1).values
-    
-    ss_df['weights'] = weights
-    
-    return ss_df, weights
+        
+    return weights
     
     
 def apply_weights(norm_df, weights):
@@ -171,4 +170,37 @@ def apply_weights(norm_df, weights):
     above, and multiplies each column with it's appropriate weight
     '''
     
+    for i in range(len(weights)):
+        norm_df.iloc[:,i] = norm_df.iloc[:,i] * weights[i]
+    
+    return norm_df
+    
+
+def additive_aggregation(weighted_df):
+    '''
+    This function takes in the dataframe with weights already multiplied
+    into the values, does an additive aggregation, and bins for final index
+    score.
+    '''
+    
+    sums = weighted_df.sum(axis=1).values
+    weighted_df['index'] = sums / len(sums)
+    weighted_df['index'] = pd.cut(weighted_df['index'], 5, labels = [1, 2, 3, 4, 5])
+    weighted_df = weighted_df[['index']]
+    
+    return weighted_df
+
+
+def geometric_aggregation(weighted_df, dtype):
+    '''
+    This function takes in a dataframe with weights already multiplied into
+    the values, does a geometric aggregation (geometric mean), and bins for
+    final index score.
+    '''
+    
+    weighted_df['index'] = gmean(weighted_df, axis=1, dtype = dtype)
+    weighted_df['index'] = pd.cut(weighted_df['index'], 5, labels = [1, 2, 3, 4, 5])
+    weighted_df = weighted_df['index']
+    
+    return weighted_df
     
