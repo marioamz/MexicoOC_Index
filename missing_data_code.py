@@ -8,6 +8,47 @@ from sklearn import linear_model
 from sklearn.neighbors import KNeighborsClassifier
 
 
+def go_missing(excelname, method, index, knn=None, weight=None, distance=None):
+    '''
+    This is the go function for this program. It takes in the excel sheet
+    to be read, the missing imputation method we want to try, the index
+    column, and for KNN: the number of nearest neighbors, the weight to
+    to be used, and the distance metric to be used.
+    '''
+    
+    df = reading_in(excelname)
+    cols= find_missing_cols(df)
+    zero = {}
+    
+    if method == 'zero':
+        for c in cols: 
+            zero[c] = 0
+        missing_df = impute_zero(df, zero)
+    
+    elif method == 'delete_row':
+        missing_df = case_deletion(df, 'row')
+    
+    elif method == 'delete_column':
+        missing_df = case_deletion(df, 'column')
+    
+    elif method == 'mode':
+        missing_df = single_imputation(df, method, cols)
+    
+    elif method == 'median':
+        missing_df = single_imputation(df, method, cols)
+        
+    elif method == 'mean':
+        missing_df = single_imputation(df, method, cols)
+        
+    elif method == 'linear':
+        missing_df = linear_regression_imputation(df, index)
+    
+    elif method == 'k':
+        missing_df = k_nearest_imputation(df, knn, index, distance, weight)
+        
+    return missing_df
+           
+
 def reading_in(excelname):
     '''
     This file reads in an excel dataset that has already been
@@ -33,7 +74,8 @@ def find_missing_cols(df):
 
     for ind, val in null_series.items():
         if val != 0:
-            null_cols.append((ind, val))
+            null_cols.append(ind)
+            #null_cols.append((ind, val))
 
     return null_cols
 
@@ -155,7 +197,7 @@ def linear_regression_imputation(df, index):
             new_dict[col] = y
 
     new_df = df.fillna(value=new_dict)
-    return new_df, scores
+    return new_df #, scores
 
 
 def k_nearest_imputation(df, knn, index, distance=None, weight=None):
@@ -216,7 +258,7 @@ def train_test(df):
     # Step 2
     cols_impute = []
     for cols in find_missing_cols(df):
-         cols_impute.append(cols[0])
+         cols_impute.append(cols)
 
     x_train = train.drop(cols_impute, axis=1)
     y_train = train[cols_impute]
