@@ -1,10 +1,53 @@
 import pandas as pd
+import missing_data_code as mdc
 import re
+import os
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import binned_statistic
 from sklearn import preprocessing, decomposition, cluster, covariance, manifold
+
+
+def go_explore(excelname, components, index1, index2, index3, buckets, year):
+    '''
+    This is the go function for exploration. It returns
+        - a text file with summary stats
+        - a correlation heatmap
+        - box plots
+        - explained variance graph
+        - 2 dimension PCA graph
+        - a factor loadings excel
+        - a kmeans composite index
+        - an affinity propagation index
+    '''
+
+    graph_path = 'graphs'
+    results_path = 'results'
+
+    if not os.path.isdir(graph_path):
+        os.mkdir(graph_path)
+
+    if not os.path.isdir(results_path):
+        os.mkdir(results_path)
+
+    df_noindex = mdc.reading_in(excelname)
+    df_index = df_noindex.set_index([index1, index2])
+
+    # Data exploration functions
+    explore_data(df_index)
+    explore_potential_correlations(df_index, year)
+    box_plot(df_index, year)
+
+    # Principal Component Analysis functions
+    pc, y_pca = pca(df_index, components)
+    final = pca_df(df_noindex, pc, y_pca, components, index1, index2, year)
+    two_dimension_pca_graph(final, index1, year)
+    factor_loadings(pc, df_noindex, final, index1, index2)
+
+    # Clustering functions
+    kmeans_index(df_noindex, df_index, buckets, [index1, index2, index3])
+    affinity_propagation(df_noindex, df_index, [index1, index2, index3])
 
 
 ####CLEAN DATA####
@@ -113,26 +156,36 @@ def explore_data(df):
     '''
 
     # Summary stats for each column
+    f = open('graphs/summary_stats.txt', 'w')
+
     for i in df:
-        print()
-        print('Summary stats for', i)
-        print(df[i].describe())
-        print()
+        f.write('Summary stats for' + ' ' + str(i))
+        f.write('\n')
+        f.write('\n')
+        f.write(str(df[i].describe()))
+        f.write('\n')
+        f.write('\n')
+        f.write('\n')
 
+    f.close()
     #Histograms for every column
-    plot_data(df, 'hist', None, None)
+    #plot_data(df, 'hist', None, None)
 
 
-def explore_potential_correlations(df):
+def explore_potential_correlations(df, year):
     '''
     This function explores potential correlations between variables
 
     This is to find instances of multicollinearity.
     '''
 
-    plt.figure(figsize=(20,20))
+    fig4 = plt.figure(figsize=(20,20))
     sns.heatmap(df.corr(), square=True, cmap='PiYG')
-    plt.show()
+    plt.title('Heatmap')
+
+    name = 'graphs/correlations_' + str(year) + '.png'
+    plt.savefig(name, bbox_inches='tight')
+    plt.close('')
 
 
 def count_values(df, col, sort_by, ascending=False):
@@ -145,17 +198,21 @@ def count_values(df, col, sort_by, ascending=False):
 
 #### GRAPHS #####
 
-def box_plot(df):
+def box_plot(df, year):
     '''
     This function creates box plots to better identify which columns
     have outliers
     '''
 
     for col in df:
-        if type(df[col][0]) is not str:
-            plt.boxplot(df[col])
-            plt.title('Outliers in' + ' ' + col)
-            plt.show()
+        #if type(df[col][0]) is not str:
+        fig3 = plt.figure(figsize=(8,8))
+        plt.boxplot(df[col])
+        plt.title('Outliers in' + ' ' + col)
+        names = 'graphs/boxplot_' + col + '_' + str(year) + '.png'
+        fig3.savefig(names, bbox_inches='tight')
+        plt.cla()
+    plt.close('all')
 
 # Generic plot function
 def plot_data(df, plot_type, var1, var2):
@@ -255,18 +312,7 @@ def pca_df(df, pc, y_pca, components, var1, var2, name):
     '''
 
     # graphing and printing the explained variance
-    explained_variance_graph(pc)
-    print('Variance explained for first' + ' ' + str(components) + \
-    ' ' + 'components' + ' ' + 'in' + ' ' + name)
-    print(np.cumsum(pc.explained_variance_ratio_) * 100)
-    print()
-    
-    
-    #print('Eigenvalues for first' + ' ' + str(components) + \
-    #     ' ' + 'components' + ' ' + 'in' + ' ' + name)
-    #print(pc.explained_variance_)
-    #print()
-    #print()
+    explained_variance_graph(pc, name, components)
 
     # creating the dataframe of PC vectors
     pcaDF = pd.DataFrame(data = y_pca, columns = \
@@ -278,20 +324,29 @@ def pca_df(df, pc, y_pca, components, var1, var2, name):
     return final
 
 
-def explained_variance_graph(vectors):
+def explained_variance_graph(vectors, year, components):
     '''
     This function takes decomposed vectors and returns
     a cumulative explained variance graph for the number
     of components specified above
     '''
 
+    fig2 = plt.figure(figsize = (8, 8))
+    text = 'Variance explained for first' + ' ' + str(components) + \
+    ' ' + 'components' + ' ' + 'in' + ' ' + str(year) + '\n' + \
+    str(np.cumsum(vectors.explained_variance_ratio_) * 100)
+
     plt.plot(np.cumsum(vectors.explained_variance_ratio_))
-    plt.xlabel('number of components')
     plt.ylabel('cumulative explained variance')
-    plt.show()
+    plt.title('Explained Variance')
+    plt.figtext(0.5, 0.01, text, wrap=True, horizontalalignment='center', fontsize=10)
+
+    name = 'graphs/Explained_Variance_' + str(year) + '.png'
+    fig2.savefig(name, bbox_inches='tight')
+    plt.close('all')
 
 
-def two_dimension_pca_graph(df, var1):
+def two_dimension_pca_graph(df, var1, year):
     '''
     This function takes in a dataframe with principal vectors as
     columns, as well as the variable of interest that we'd like to
@@ -304,7 +359,7 @@ def two_dimension_pca_graph(df, var1):
     ax = fig.add_subplot(1,1,1)
     ax.set_xlabel('Principal Component 1', fontsize = 15)
     ax.set_ylabel('Principal Component 2', fontsize = 15)
-    ax.set_title('2 Component PCA for' + ' ' + str(df['year'][1]), fontsize = 20)
+    ax.set_title('2 Component PCA for' + ' ' + str(year), fontsize = 20)
 
 
     targets = df[var1].unique().tolist()
@@ -318,7 +373,9 @@ def two_dimension_pca_graph(df, var1):
     ax.legend(targets)
     ax.grid()
 
-    plt.show()
+    name = 'graphs/2DPCA_' + str(year) + '.png'
+    fig.savefig(name, bbox_inches='tight')
+    plt.close('all')
 
 
 def factor_loadings(pc, df_vars, df_pca, var1, var2):
@@ -337,8 +394,12 @@ def factor_loadings(pc, df_vars, df_pca, var1, var2):
         index= [c for c in df_vars if c != var1 and c != var2],
         columns= [p for p in df_pca if p != var1 and p != var2])
 
-    return loadings.style.apply(highlight_vals)
-        
+    loads = loadings.style.apply(highlight_vals)
+
+    writer = pd.ExcelWriter('data/loadings.xlsx')
+    loads.to_excel(writer)
+    writer.save()
+
 
 def highlight_vals(s):
     '''
@@ -365,7 +426,7 @@ def standardizing(df):
     return preprocessing.StandardScaler().fit_transform(df)
 
 
-def kmeans_index(df_wtarget, df_wotarget, n_clusters, vars):
+def kmeans_index(df_wtarget, df_wotarget, n_clusters, variables):
     '''
     This function takes in a dataframe with the target variables,
     a dataframe without the target variable, number of clusters,
@@ -379,12 +440,14 @@ def kmeans_index(df_wtarget, df_wotarget, n_clusters, vars):
 
     kmeans = cluster.KMeans(n_clusters = n_clusters).fit(array)
     df_wtarget['score'] = kmeans.labels_
-    scores = df_wtarget.filter(items=vars)
+    scores = df_wtarget.filter(items=variables)
 
-    return scores
+    writer = pd.ExcelWriter('results/KMeans.xlsx')
+    scores.to_excel(writer)
+    writer.save()
 
 
-def affinity_propagation(df_wtarget, df_wotarget, title):
+def affinity_propagation(df_wtarget, df_wotarget, variables):
     '''
     This function takes in a dataframe with our target variable,
     a dataframe without the target variable, and the title of the
@@ -405,11 +468,9 @@ def affinity_propagation(df_wtarget, df_wotarget, title):
     # Cluster using affinity propagation
 
     _, labels = cluster.affinity_propagation(edge_model.covariance_)
-    n_labels = labels.max()
+    df_wtarget['score'] = labels + 1
+    scores = df_wtarget.filter(items=variables)
 
-    print()
-    print(title)
-    for i in range(n_labels + 1):
-        print('Cluster %i: %s' % ((i + 1), ', '.join(df_wtarget.iloc[:,0].\
-        values[labels == i])))
-        
+    writer = pd.ExcelWriter('results/affinity_propagation.xlsx')
+    scores.to_excel(writer)
+    writer.save()
