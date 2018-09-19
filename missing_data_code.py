@@ -46,8 +46,10 @@ def go_missing(excelname, method, index, knn=None, weight=None, distance=None):
     elif method == 'k':
         missing_df = k_nearest_imputation(df, knn, index, distance, weight)
         
-    return missing_df
-           
+    writer = pd.ExcelWriter('data/imputed.xlsx')
+    missing_df.to_excel(writer)
+    writer.save()
+                   
 
 def reading_in(excelname):
     '''
