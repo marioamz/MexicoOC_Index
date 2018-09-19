@@ -51,7 +51,12 @@ The first step in the program is to impute missing variables in the data. In ord
 import missing_data_code as mdc
 ```
 
-Once the code is imported, we run the go function which has the following parameters:
+Once the code is imported, we'll use the go function which has the following parameters:
+
+```
+mdc.go_missing(excelname, method, index, knn, weight, distance)
+```
+
 - excelname = the name of the excel file of the data we're working with (ie: 'data/2010.xlsx')
 - method = the method we want to use to impute missing data, there are several options:
   - 'zero' = imputes all missing values with zeroes
@@ -74,7 +79,25 @@ Once the code is imported, we run the go function which has the following parame
   - 'minkowski'
   - None: use if you're not employing the 'k' method
 
+### Examples of imputing missing data
 
+If you want to estimate missing variables for your 2012 data with the mean of the columns, and the column name of the country column is pais, you would run the following command in ipython.
+
+```
+mdc.go_missing('data/2012.xlsx', 'mean', 'pais', None, None, None)
+```
+
+If instead you want to estimate missing variables for your 2014 data with a k-nearest neighbors approach, and the column name of the country column is paises, you would run the following command in ipython.
+
+```
+mdc.go_missing('data/2014.xlsx', 'k', 'paises', 5, 'uniform', 'minkowski')
+```
+
+Both of these commands would estimate missing variables. The first would do so by taking the mean of the columns with missing variables, and the second by employing a k-nearest neighbors approach that takes into account the five nearest neighbors according to a uniform weighting scheme and a minkowski distance.
+
+The output from this command will be a new excel sheet in your data subfolder called **imputed.xlsx**. This excel sheet has the estimated variables according to the method selected.
+
+## Explore the data
 
 
 
