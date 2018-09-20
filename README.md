@@ -208,3 +208,13 @@ wts.go_weights(excelname, method, components, index1, index2, year)
 
 ### Example of weighting and aggregating
 
+Let's say you're using the 'data/normalized.xslx' excel file, that you want to weight your variables using 10 components, and that you want to deploy a geometric mean aggregation. Furthermore, let's say you're examining 2015 data and that your country column name is 'paises' and year column name is 'XXX'. You would type in the following command into ipython.
+
+```
+wts.go_weights('data/normalized.xlsx', 'geometric', 10, 'paises', 'XXX', 2015)
+```
+
+### Output of weighting and aggregating
+
+The output from the go_weights function is the final result. In the results subfolder, you'll find a new excel file called **geometric_aggregation.xlsx** if you chose 'geometric' as the method; or **additive_aggregation.xlsx** if you chose 'add' as the method. This excel file is the composite index score.
+
